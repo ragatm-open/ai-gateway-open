@@ -1,0 +1,232 @@
+# FIXTURE DE TEST — registre de gouvernance « forme historique ».
+#
+# Ce fichier N'EST PAS le registre servi par AI Gateway Open (voir
+# app/models_registry.yaml, profil Compact). Il reproduit la FORME du registre
+# de l'installation d'origine — profils de contexte, budgets de sortie,
+# politiques de raisonnement (toggle / niveaux), profils vision et ASR — afin
+# que la suite de tests héritée (gouvernance, différentiels, identité de
+# pipeline) continue de prouver les mêmes invariants. Les noms de modèles sont
+# des tags publics des bibliothèques Ollama / HuggingFace ; les digests et
+# révisions sont ceux des artefacts publics. Aucune mesure, aucun hôte, aucune
+# information d'exploitation : les commentaires d'origine ont été retirés.
+#
+# Chargé par tests/conftest.py via AI_GATEWAY_MODELS_REGISTRY. Les tests de
+# conformité Open (tests/open/) chargent, eux, le registre Compact réel.
+version: 1
+models:
+  legacy-768:
+    provider: ollama
+    ollama_name: nomic-embed-text
+    digest: "0a109f422b47e3a30ba2b10eca18548e944e8a23073ee3f3e947efcf3c45e59f"
+    kind: embedding
+    dimension: 768
+    languages:
+      - en
+    cross_lingual: false
+    normalized: true
+    query_prefix: "search_query: "
+    document_prefix: "search_document: "
+    max_batch_size: 64
+    max_input_chars: 6000
+    on_overflow: reject
+    production_allowed: true
+    staging_allowed: true
+  fr-en-retrieval:
+    provider: ollama
+    ollama_name: granite-embedding:278m
+    digest: "1a37926bf842899cbf90583e3932f3820548716d9d07661ba622199ffe95c552"
+    kind: embedding
+    dimension: 768
+    languages:
+      - fr
+      - en
+    cross_lingual: true
+    normalized: true
+    query_prefix: ""
+    document_prefix: ""
+    max_batch_size: 64
+    max_input_chars: 1200
+    on_overflow: reject
+    production_allowed: true
+    staging_allowed: true
+context_profiles:
+  chat-small:
+    num_ctx: 4096
+    max_num_ctx: 16384
+  verifier:
+    num_ctx: 8192
+    max_num_ctx: 16384
+  large-general:
+    num_ctx: 8192
+    max_num_ctx: 16384
+  long-context:
+    num_ctx: 16384
+    max_num_ctx: 32768
+  oss-long-context:
+    num_ctx: 16384
+    max_num_ctx: 65536
+  reasoning-16k:
+    num_ctx: 16384
+    max_num_ctx: 16384
+generation_profiles:
+  planner-bounded:
+    default_num_predict: 2048
+    max_num_predict: 4096
+  chat-bounded:
+    default_num_predict: 3072
+    max_num_predict: 8192
+  judge-bounded:
+    default_num_predict: 3072
+    max_num_predict: 4096
+  vision-bounded:
+    default_num_predict: 2048
+    max_num_predict: 4096
+  gemma-bounded:
+    default_num_predict: 2048
+    max_num_predict: 4096
+  reasoning-bounded:
+    default_num_predict: 4096
+    max_num_predict: 8192
+keep_alive_profiles:
+  resident:
+    keep_alive: 30m
+  transient:
+    keep_alive: 2m
+  default:
+    keep_alive: null
+  transient-governed:
+    keep_alive: 2m
+    client_override: false
+reasoning_profiles:
+  oss-tiered:
+    type: levels
+    allowed: [low, medium, high]
+    default: low
+    disable_supported: false
+    expose_thinking: false
+  qwen-thinking:
+    type: toggle
+    default: "on"
+    disable_supported: false
+    expose_thinking: false
+llm_models:
+  llama-chat:
+    ollama_name: llama3.1:8b
+    capabilities: [completion, tools]
+    resource_class: medium
+    context_profile: long-context
+    keep_alive_profile: resident
+    generation_profile: chat-bounded
+    structured_output: true
+    production_allowed: true
+    staging_allowed: true
+  qwen-judge:
+    ollama_name: qwen3:14b
+    capabilities: [completion, tools, thinking, structured_output]
+    resource_class: medium
+    context_profile: verifier
+    keep_alive_profile: resident
+    generation_profile: judge-bounded
+    default_think: false
+    structured_output: true
+    production_allowed: true
+    staging_allowed: true
+  qwen-large:
+    ollama_name: qwen3:30b-instruct
+    capabilities: [completion, tools, structured_output]
+    resource_class: large
+    context_profile: large-general
+    keep_alive_profile: transient
+    generation_profile: planner-bounded
+    structured_output: true
+    production_allowed: true
+    staging_allowed: true
+  vision-large:
+    ollama_name: mistral-small3.2:24b
+    digest: "5a408ab55df5c1b5cf46533c368813b30bf9e4d8fc39263bf2a3338cfa3b895b"
+    capabilities: [completion, vision, tools, structured_output]
+    modalities: [text, image]
+    vision:
+      schema_versions: ["1", "2"]
+      tasks: [describe]
+      max_images: 1
+      max_image_pixels: 2000000
+    resource_class: large
+    context_profile: large-general
+    keep_alive_profile: transient
+    generation_profile: vision-bounded
+    structured_output: true
+    production_allowed: true
+    staging_allowed: true
+  gemma-large:
+    ollama_name: gemma3:27b
+    capabilities: [completion, structured_output]
+    resource_class: large
+    context_profile: large-general
+    keep_alive_profile: transient-governed
+    generation_profile: gemma-bounded
+    structured_output: true
+    production_allowed: true
+    staging_allowed: true
+  oss-reasoning:
+    ollama_name: gpt-oss:20b
+    capabilities: [chat, structured_output]
+    resource_class: large
+    context_profile: oss-long-context
+    keep_alive_profile: transient-governed
+    generation_profile: reasoning-bounded
+    reasoning_profile: oss-tiered
+    production_allowed: true
+    staging_allowed: true
+  qwen-reasoning:
+    ollama_name: qwen3:30b-a3b-thinking-2507-q4_K_M
+    capabilities: [chat, structured_output]
+    resource_class: large
+    context_profile: reasoning-16k
+    keep_alive_profile: transient-governed
+    generation_profile: reasoning-bounded
+    reasoning_profile: qwen-thinking
+    production_allowed: true
+    staging_allowed: true
+reranker_models:
+  rerank-default:
+    provider: local_cross_encoder
+    artifact: BAAI/bge-reranker-v2-m3
+    revision: "953dc6f6f85a1b2dbfca4c34a2796e7dde08d41e"
+    max_documents_per_request: 64
+    max_query_chars: 2000
+    max_document_chars: 4000
+    max_total_chars: 160000
+    on_overflow: reject
+    higher_is_better: true
+    calibrated: false
+    production_allowed: true
+    staging_allowed: true
+vision_defaults:
+  default_model: vision-large
+asr_defaults:
+  model: asr-whisper-turbo
+asr_models:
+  asr-whisper-turbo:
+    provider: faster-whisper
+    artifact: mobiuslabsgmbh/faster-whisper-large-v3-turbo
+    revision: "0a363e9161cbc7ed1431c9597a8ceaf0c4f78fcf"
+    artifact_sha256: "e76620f83d5f5b69efd3d87e3dc180c1bd21df9fbebacfd4335e5e1efcc018da"
+    compute_type: float16
+    vad:
+      provider: silero
+      source: faster-whisper-embedded
+      version: "1.2.1"
+    diarization:
+      provider: nemo-sortformer
+      artifact: nvidia/diar_streaming_sortformer_4spk-v2
+      revision: "84edd514b8ef68004c10086918cd62f2148cbd59"
+      artifact_sha256: "b371afce2c4958186469df33d939936b9746c89f38b10a69cfd2c61254e83329"
+    capabilities: [transcription, word_timestamps, vocabulary_biasing, multilingual, diarization]
+    languages: [fr, en]
+    max_duration_seconds: 6300
+    sync_max_duration_seconds: 1200
+    max_upload_bytes: 268435456
+    resource_class: speech-gpu
+    staging_allowed: true
+    production_allowed: true

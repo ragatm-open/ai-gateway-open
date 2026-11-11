@@ -1,0 +1,6 @@
+# Dépendances de TEST — mêmes règles que requirements.in ; le
+# requirements-dev.txt généré est contraint par requirements.txt (mêmes
+# versions runtime, hashes vérifiés).
+-c requirements.txt
+pytest==8.3.4
+httpx==0.28.1

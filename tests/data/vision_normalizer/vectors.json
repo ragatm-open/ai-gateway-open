@@ -1,0 +1,77 @@
+{
+ "generated_with_pillow": "12.3.0",
+ "normalizer_id": "vision-image-normalizer/1",
+ "note": "images synthétiques (formes Pillow) régénérées via tests/data/vision_normalizer/generate.py ; aucune donnée réelle ; attendus = octets exacts du PNG normalisé",
+ "vectors": {
+  "jpeg_exif1": {
+   "file": "jpeg_exif1.jpeg",
+   "input_format": "jpeg",
+   "mime_type": "image/jpeg",
+   "width": 96,
+   "height": 64,
+   "source_sha256": "ea94f60412ba57586b5c56f1c489aa78d15623ec6f3df60324d9d4fcfa439224",
+   "normalized_bytes": 8572,
+   "normalized_sha256": "cb035657f9b04b0e3e0c26b068e5fbedfac184fe60c345fd3c576ae95ef8c359"
+  },
+  "jpeg_exif6": {
+   "file": "jpeg_exif6.jpeg",
+   "input_format": "jpeg",
+   "mime_type": "image/jpeg",
+   "width": 64,
+   "height": 96,
+   "source_sha256": "cc6d7953ec577d22d9ea44ccaf1694b474964626585bcdcddc7119912b15b0e0",
+   "normalized_bytes": 8592,
+   "normalized_sha256": "117ca745a3c78d165ef9b2de92d21d565738ce6b738eda1b2258eefa5c41bd58"
+  },
+  "jpeg_rgb": {
+   "file": "jpeg_rgb.jpeg",
+   "input_format": "jpeg",
+   "mime_type": "image/jpeg",
+   "width": 96,
+   "height": 64,
+   "source_sha256": "2d459ce555d4587aefbf742c965ac95f16d98923a7badb4434def1cadae79c64",
+   "normalized_bytes": 8572,
+   "normalized_sha256": "cb035657f9b04b0e3e0c26b068e5fbedfac184fe60c345fd3c576ae95ef8c359"
+  },
+  "png_gray": {
+   "file": "png_gray.png",
+   "input_format": "png",
+   "mime_type": "image/png",
+   "width": 96,
+   "height": 64,
+   "source_sha256": "8425cfa79e66e490ccd8adbdd3a458c4aa30bec956abfb25c1b11e514b3c300e",
+   "normalized_bytes": 652,
+   "normalized_sha256": "33ba3caac79ccb4bf908afabaf7b287e01eae7804bd4f8e7d6ba652d7513ce04"
+  },
+  "png_rgb": {
+   "file": "png_rgb.png",
+   "input_format": "png",
+   "mime_type": "image/png",
+   "width": 96,
+   "height": 64,
+   "source_sha256": "f5bc4cb681f1fdccafb73d69c5ab6605b4f295f5f3f88e6c80606f81343a46f5",
+   "normalized_bytes": 687,
+   "normalized_sha256": "f5bc4cb681f1fdccafb73d69c5ab6605b4f295f5f3f88e6c80606f81343a46f5"
+  },
+  "png_rgba": {
+   "file": "png_rgba.png",
+   "input_format": "png",
+   "mime_type": "image/png",
+   "width": 96,
+   "height": 64,
+   "source_sha256": "954e26597f8bfc084a423b292899837585adc052648fc425ca5f0d6ebc8b4fce",
+   "normalized_bytes": 678,
+   "normalized_sha256": "4d4362ed0739497860761324d6eeec3f300fdb0792415fec3c778166bf690eb5"
+  },
+  "webp_rgb": {
+   "file": "webp_rgb.webp",
+   "input_format": "webp",
+   "mime_type": "image/webp",
+   "width": 96,
+   "height": 64,
+   "source_sha256": "9f58cbbf039e5d75aacef0e7a9121fa9e72d4fc5f51642921f524af2b4ccf314",
+   "normalized_bytes": 5157,
+   "normalized_sha256": "5db57f2ccf348699b6776dd93d87b83b55380406daec93a802038de45adef1b6"
+  }
+ }
+}

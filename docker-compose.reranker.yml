@@ -1,0 +1,35 @@
+# Backend de reranking SEUL (TEI, cross-encoder) pour une Gateway lancée hors
+# Docker (uvicorn sur l'hôte) : publié UNIQUEMENT sur la boucle locale de
+# l'hôte, image épinglée par le digest de .env (copie locale de .env.example).
+#   docker compose -f docker-compose.reranker.yml up -d
+# Variante CPU par défaut ; une variante GPU se substitue par le digest.
+services:
+  reranker:
+    image: ghcr.io/huggingface/text-embeddings-inference@${AI_GATEWAY_RERANK_BACKEND_IMAGE_DIGEST:?digest TEI requis (.env)}
+    ports:
+      - "127.0.0.1:8300:80"
+    command:
+      - --model-id
+      - BAAI/bge-reranker-v2-m3
+      - --revision
+      - 953dc6f6f85a1b2dbfca4c34a2796e7dde08d41e
+      - --max-client-batch-size
+      - "64"
+      # Échauffement TEI borné à 4096 tokens par lot : l'attention est
+      # quadratique (8192² × 16 têtes en float32 ≈ 4 Go par couche) et le défaut
+      # 16384 comme la valeur 8192 ont été tués par un cgroup de 7 Go sur CPU
+      # (mesuré). TEI exige alors `--auto-truncate` ; cette troncature
+      # est INATTEIGNABLE : la Gateway borne déjà requête (2 000 car.) +
+      # document (4 000 car.) bien sous 4096 tokens et refuse au-delà (reject).
+      # Sur GPU, relever --max-batch-tokens (et retirer --auto-truncate).
+      - --max-batch-tokens
+      - "4096"
+      - --max-batch-requests
+      - "8"
+      - --auto-truncate
+    volumes:
+      - tei_data:/data
+    restart: unless-stopped
+
+volumes:
+  tei_data:

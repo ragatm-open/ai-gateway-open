@@ -1,0 +1,209 @@
+# Registre Compact des modèles servis par AI Gateway Open.
+#
+# Ce fichier fait partie du CODE, pas de la configuration d'exploitation : il
+# décrit des propriétés techniques des modèles (dimension, préfixes, fenêtre
+# d'entrée, normalisation, budgets de sortie) et leur ÉTAT DE QUALIFICATION.
+# Ce qui relève de l'environnement (quel modèle est le défaut, l'URL du
+# runtime, les délais) reste dans les variables d'environnement.
+#
+# Doctrine Open :
+#   · aucun modèle n'est servi s'il n'est pas décrit ici (registres stricts) ;
+#   · un digest n'est écrit que s'il a été RELEVÉ (GET /api/tags) sur un
+#     runtime Ollama ayant tiré le tag depuis la bibliothèque officielle ; un
+#     modèle dont le digest n'a pas été relevé reste `candidate` SANS digest ;
+#   · `qualification` décrit l'état de preuve : candidate (identifié par
+#     identifié, aucune mesure Open), experimental (mesuré partiellement),
+#     qualified (campagne de qualification passée), deprecated ;
+#   · `memory_budget_mib` est une ESTIMATION déclarée (source citée), jamais
+#     une mesure revendiquée : « supporte 8/12 Go » n'est pas affirmé ici.
+#
+# Les modèles de production de l'installation d'origine (14–30 B) ne sont
+# PAS des modèles Compact : ils n'apparaissent pas dans ce registre.
+#
+# Identité d'embeddings : `pipeline_id` est DÉRIVÉ de la transformation
+# effective (SHA-256 d'un payload canonique : digest complet, task, préfixe,
+# politique de troncature, normalisation, version du code de préparation —
+# cf. app/registry.py). Modifier un digest, un préfixe, `normalized` ou
+# `on_overflow` change donc l'identifiant et impose de réindexer.
+
+version: 1
+
+# --------------------------------------------------------------------------- #
+# Embeddings — contrainte Compact v1 : dimension 768 (index existant), toute
+# sélection d'un modèle d'une autre dimension est refusée par la Gateway.
+# --------------------------------------------------------------------------- #
+models:
+  # Profil bilingue FR/EN — DÉFAUT Compact (OLLAMA_EMBEDDING_MODEL).
+  # IBM Granite Embedding 278M, Apache-2.0, dimension 768, fenêtre 512 tokens.
+  # Digest relevé lors de la qualification (2026-11-09) sur un Ollama isolé après
+  # `pull granite-embedding:278m` depuis la bibliothèque officielle ; il est
+  # IDENTIQUE au digest relevé par l'installation d'origine (2026-08-01) :
+  # même artefact public. Limite d'entrée volontairement conservatrice
+  # (1 200 caractères, reject) : la troncature silencieuse du modèle commence
+  # vers 1 400 caractères sur du contenu chiffré.
+  fr-en-retrieval:
+    provider: ollama
+    ollama_name: granite-embedding:278m
+    digest: "1a37926bf842899cbf90583e3932f3820548716d9d07661ba622199ffe95c552"
+    kind: embedding
+    dimension: 768
+    languages: [fr, en]
+    cross_lingual: true
+    normalized: true
+    query_prefix: ""
+    document_prefix: ""
+    max_batch_size: 64
+    max_input_chars: 1200
+    on_overflow: reject
+    production_allowed: true
+    staging_allowed: true
+    compact_role: embeddings-default
+    license: Apache-2.0
+    # Qualification : identité vérifiée et embeddings réels servis sur
+    # CPU ; qualité FR/EN mesurée par
+    # l'installation d'origine, non rejouée dans Open => experimental.
+    qualification: experimental
+    memory_budget_mib: 600
+    version: "278m"
+
+  # Alternative anglophone, dimension 768, Apache-2.0 (nomic-embed-text v1.5).
+  # Digest relevé par l'installation d'origine sur la bibliothèque officielle
+  # (2026-08-01) ; NON re-relevé lors de la qualification (modèle non tiré) => candidate.
+  # Conservé parce que des index RagATM existants portent son pipeline_id.
+  legacy-768:
+    provider: ollama
+    ollama_name: nomic-embed-text
+    digest: "0a109f422b47e3a30ba2b10eca18548e944e8a23073ee3f3e947efcf3c45e59f"
+    kind: embedding
+    dimension: 768
+    languages: [en]
+    cross_lingual: false
+    normalized: true
+    query_prefix: "search_query: "
+    document_prefix: "search_document: "
+    max_batch_size: 64
+    max_input_chars: 6000
+    on_overflow: reject
+    production_allowed: true
+    staging_allowed: true
+    compact_role: embeddings-alternative-en
+    license: Apache-2.0
+    qualification: candidate
+    memory_budget_mib: 650
+    version: "v1.5"
+
+# --------------------------------------------------------------------------- #
+# Gouvernance LLM — profils de contexte / sortie / rétention.
+# Bornes dimensionnées pour un GPU 8–12 Go : le chat RAG réel mesuré par
+# l'installation d'origine a un prompt p50 ≈ 5 000 tokens, p95 ≈ 7 100 =>
+# num_ctx 8192 minimum pour le chat RAG ; 4096 tronque la moitié du trafic.
+# --------------------------------------------------------------------------- #
+context_profiles:
+  # Chat RAG Compact : 8192 par défaut, plafond 16384 sur demande explicite.
+  compact-rag:
+    num_ctx: 8192
+    max_num_ctx: 16384
+  # Petits modèles expérimentaux : même défaut, plafond identique.
+  compact-small:
+    num_ctx: 8192
+    max_num_ctx: 16384
+
+generation_profiles:
+  # Réponses de chat RAG : 2048 tokens par défaut couvrent les réponses
+  # observées (max 2 394 sur le trafic d'origine) ; 4096 = dépassement explicite.
+  compact-answer:
+    default_num_predict: 2048
+    max_num_predict: 4096
+
+keep_alive_profiles:
+  # Résident entre deux requêtes d'une session ; pas une réservation VRAM.
+  resident:
+    keep_alive: 30m
+  # Rendre la VRAM vite sur un GPU 8 Go partagé entre LLM et embeddings.
+  transient:
+    keep_alive: 2m
+
+# Aucun profil de raisonnement : les candidats Compact sont des modèles
+# instruct sans canal de réflexion sur /api/generate. La capability `chat`
+# (/v1/chat) exige un reasoning_profile explicite : elle n'est pas déclarée.
+
+llm_models:
+  # Génération Compact-12 — CANDIDAT (§3) : Qwen2.5 7B instruct
+  # Q4_K_M, Apache-2.0, ~4,7 Go de poids ; VRAM estimée 5–6 Gio @8192
+  # (NOT_VERIFIED). Aucun digest : le tag n'a pas été tiré lors de la qualification (pas de
+  # GPU 12 Go isolé disponible) ; le contrôle d'installation passe par
+  # l'inventaire /api/tags (`installed`), jamais par une valeur inventée.
+  compact-generation:
+    ollama_name: qwen2.5:7b-instruct
+    capabilities: [completion, structured_output]
+    resource_class: medium
+    context_profile: compact-rag
+    keep_alive_profile: resident
+    generation_profile: compact-answer
+    structured_output: true
+    production_allowed: true
+    staging_allowed: true
+    compact_role: generation-compact-12
+    license: Apache-2.0
+    qualification: candidate
+    memory_budget_mib: 6144
+    version: "qwen2.5-7b-instruct-q4_K_M"
+
+  # Génération Compact-8 — EXPÉRIMENTALE : Qwen2.5 1.5B instruct Q4_K_M,
+  # Apache-2.0 (0,99 Go de poids). Retenu plutôt que la variante 3B, dont la
+  # licence (Qwen Research License) n'est PAS Apache-2.0. Digest relevé par
+  # Relevé (2026-11-09) sur un Ollama isolé après pull depuis la bibliothèque
+  # officielle ; génération et flux réels servis sur CPU
+  # VRAM estimée 1,5–2 Gio @8192
+  # (NOT_VERIFIED sur GPU) ; qualité RAG à mesurer ; jamais défaut,
+  # jamais repli.
+  compact-generation-8:
+    ollama_name: qwen2.5:1.5b-instruct
+    digest: "65ec06548149b04c096a120e4a6da9d4017ea809c91734ea5631e89f96ddc57b"
+    capabilities: [completion, structured_output]
+    resource_class: small
+    context_profile: compact-small
+    keep_alive_profile: transient
+    generation_profile: compact-answer
+    structured_output: true
+    production_allowed: true
+    staging_allowed: true
+    compact_role: generation-compact-8
+    license: Apache-2.0
+    qualification: experimental
+    memory_budget_mib: 2048
+    version: "qwen2.5-1.5b-instruct-q4_K_M"
+
+# --------------------------------------------------------------------------- #
+# Reranking — backend LOCAL dédié (TEI, cross-encoder), jamais Ollama.
+# `revision` = SHA de commit HuggingFace immuable ; /health/rerank refuse de
+# servir un backend dont /info diverge.
+# --------------------------------------------------------------------------- #
+reranker_models:
+  rerank-default:
+    provider: local_cross_encoder
+    artifact: BAAI/bge-reranker-v2-m3
+    revision: "953dc6f6f85a1b2dbfca4c34a2796e7dde08d41e"
+    max_documents_per_request: 64
+    max_query_chars: 2000
+    max_document_chars: 4000
+    max_total_chars: 160000
+    on_overflow: reject
+    # Scores = logits ordinaux du cross-encoder, PAS des probabilités.
+    higher_is_better: true
+    calibrated: false
+    production_allowed: true
+    staging_allowed: true
+    compact_role: reranking-local
+    license: Apache-2.0
+    # identité (artefact + révision) vérifiée et scoring réel servi
+    # par TEI CPU sur l'environnement isolé ; latence GPU/CPU vs budget du
+    # consommateur non mesurée => experimental.
+    qualification: experimental
+    memory_budget_mib: 1500
+    version: "953dc6f6"
+
+# Pas de section `vision_defaults` ni `asr_models` : les capacités Vision et
+# ASR sont OFF et sans modèle enregistré dans le profil Compact (états
+# DISABLED). Une installation qui fournit ses propres backends qualifiés peut
+# les déclarer dans un registre dérivé (AI_GATEWAY_MODELS_REGISTRY).

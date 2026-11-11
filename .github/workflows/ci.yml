@@ -1,0 +1,63 @@
+# CI générique AI Gateway Open (préparée lors de la qualification, NON EXÉCUTÉE à ce jour — aucun dépôt public ;
+# Aucun secret, aucun modèle téléchargé : la suite est entièrement simulée (mocks).
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install locked dependencies (hashes verified)
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install --require-hashes -r requirements.txt
+          .venv/bin/pip install --require-hashes -r requirements-dev.txt
+      - name: Lock drift (requirements.txt derived from requirements.in)
+        run: |
+          .venv/bin/pip install pip-tools
+          .venv/bin/pip-compile --quiet --allow-unsafe --generate-hashes --no-strip-extras --output-file /tmp/req.txt requirements.in
+          diff <(grep -v '^#' requirements.txt) <(grep -v '^#' /tmp/req.txt)
+      - name: Lint (advisory — see note)
+        # État mesuré sur le candidat de publication : 891 signalements ruff (règles par défaut),
+        # héritage antérieur à la publication, sans configuration ruff dans le dépôt.
+        # Non bloquant jusqu'à une décision de style dédiée ; informe sans masquer les tests.
+        continue-on-error: true
+        run: |
+          .venv/bin/pip install ruff
+          .venv/bin/ruff check app tools tests
+      - name: Tests — FAST profile (contracts, registries, configuration, health)
+        run: .venv/bin/python -m pytest -q -m fast tests
+      - name: Tests — STANDARD/FULL profile (mocks only, no inference)
+        run: .venv/bin/python -m pytest -q tests
+      - name: Dependency vulnerability audit
+        run: |
+          .venv/bin/pip install pip-audit
+          .venv/bin/pip-audit --require-hashes --no-deps -r requirements.txt
+      - name: Secret scan
+        run: |
+          pipx run detect-secrets scan --all-files --exclude-lines '\b[0-9a-f]{40}\b|\b[0-9a-f]{64}\b|sha256:[0-9a-f]{64}' . > .secrets.json
+          python3 -c "import json,sys; r=json.load(open('.secrets.json')).get('results',{}); print(r.keys()); sys.exit(1 if r else 0)"
+      - name: SBOM (CycloneDX)
+        run: pipx run cyclonedx-bom requirements requirements.txt --of JSON -o sbom-gateway.cdx.json
+      - name: Docker image build (digest-pinned base, hash-locked deps, no push)
+        run: docker build -t ai-gateway-open:ci .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom-gateway.cdx.json

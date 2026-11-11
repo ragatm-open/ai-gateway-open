@@ -1,0 +1,24 @@
+# Dépendances DIRECTES de la Gateway. Le fichier requirements.txt
+# est GÉNÉRÉ depuis celui-ci (pip-compile --generate-hashes) et porte versions
+# ET hashes de toutes les dépendances, directes et transitives — ne pas
+# l'éditer à la main. Procédure : doc/07-developpement.md.
+fastapi==0.162.2
+uvicorn[standard]==0.54.0
+requests==2.34.2
+pydantic==2.14.3
+# Registre de modèles (app/models_registry.yaml). PyYAML arrivait déjà comme
+# dépendance transitive d'uvicorn[standard] ; on l'épingle explicitement puisque
+# le démarrage en dépend désormais.
+PyYAML==6.0.2
+# Décodage/validation d'images du rail vision (lot vision-1a). Seule
+# dépendance d'imagerie autorisée par le contrat gelé — pas de framework CV.
+Pillow==13.0.0
+# Validation JSON Schema des sorties structurées (lot C3) : validateur
+# Draft 2020-12 de référence, utilisé UNIQUEMENT sur le sous-ensemble de
+# mots-clés admis par app/structured.py (aucun $ref, aucun pattern, aucune
+# résolution externe). Extras `format` volontairement NON installés.
+jsonschema==4.26.0
+# Analyse multipart en flux du rail ASR (lot asr-rail-foundation) : Starlette
+# l'exige pour `request.form()`/`request.stream()` multipart. Aucune autre
+# dépendance audio côté Gateway : le décodage vit dans le backend asr/.
+python-multipart==0.0.33

@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Environment / secrets
+.env
+.env.*
+*.env
+
+# Logs / runtime
+*.log
+logs/
+tmp/
+*.pid
+
+# Backups
+backups/
+*.bak
+*.backup
+*.orig
+
+# OS / editors
+.DS_Store
+.vscode/
+.idea/
+
+# Docker local artifacts
+*.tar
+*.dump
+
+# Local agent tooling
+.claude/
+
+# Keep the example env
+!.env.example
+
+# .env (copie locale de .env.example) n'est JAMAIS versionné : la provenance de
+# build (digest de l'image du reranker) est fournie par .env.example, source unique
+# vérifiée par tests/test_provenance.py.
+# Réglages du runtime Ollama du Compose autonome : aucun secret.
+!ollama.env
+# tools/toolchain.env est VERSIONNÉ par exception : il ne porte que
+# des pins d'outillage (pip-tools, image Syft) — aucun secret, aucune URL —
+# et il est la source unique lue par tools/update_requirements.sh et
+# tools/sbom.sh, vérifiée par tests/test_supply_chain.py.
+!tools/toolchain.env

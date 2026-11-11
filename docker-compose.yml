@@ -1,0 +1,84 @@
+# AI Gateway Open — pile de développement AUTONOME.
+#
+#   RAGatm Open  ->  ai-gateway (127.0.0.1:8100)  ->  ollama (réseau interne)
+#                                   \-> reranker TEI (boucle locale du conteneur Gateway)
+#
+# · Aucun port publié hors de la boucle locale de l'hôte.
+# · Le backend de reranking partage l'espace réseau du conteneur Gateway
+#   (`network_mode: service:ai-gateway`) : la règle « backend reranker en
+#   boucle locale » de la Gateway est respectée sans exposer TEI.
+# · Les poids des modèles vivent dans des volumes, jamais dans les images ;
+#   AUCUN téléchargement n'est déclenché par une requête : l'exploitant
+#   installe les modèles (doc/02-installation.md).
+# · Images épinglées par digest ; le digest TEI vient de .env (copie locale de
+#   .env.example, source unique).
+#
+# Démarrage : cp .env.example .env && docker compose up -d --build
+services:
+  ollama:
+    # ollama/ollama — digest relevé le 2026-11-09 (version rapportée 0.30.8).
+    image: ollama/ollama@sha256:05b6fe5143ed006d6d4abd39bdd575f962a5822bdf81e6fbb5e6894eb984ab9c
+    volumes:
+      - ollama_data:/root/.ollama
+    env_file:
+      - ./ollama.env
+    networks:
+      - internal
+    restart: unless-stopped
+
+  ai-gateway:
+    build:
+      context: .
+      args:
+        AI_GATEWAY_BUILD_SHA: "${AI_GATEWAY_BUILD_SHA:-}"
+        AI_GATEWAY_SOURCE_URL: "${AI_GATEWAY_SOURCE_URL:-}"
+    image: ai-gateway-open:local
+    env_file:
+      - ./.env
+    ports:
+      - "127.0.0.1:8100:8100"
+    depends_on:
+      - ollama
+    networks:
+      - internal
+    restart: unless-stopped
+
+  reranker:
+    image: ghcr.io/huggingface/text-embeddings-inference@${AI_GATEWAY_RERANK_BACKEND_IMAGE_DIGEST:?digest TEI requis (.env)}
+    # Espace réseau de la Gateway : joignable par elle sur 127.0.0.1:8300, par
+    # personne d'autre.
+    network_mode: "service:ai-gateway"
+    command:
+      - --model-id
+      - BAAI/bge-reranker-v2-m3
+      - --revision
+      - 953dc6f6f85a1b2dbfca4c34a2796e7dde08d41e
+      - --port
+      - "8300"
+      - --max-client-batch-size
+      - "64"
+      # Échauffement TEI borné à 4096 tokens par lot : l'attention est
+      # quadratique (8192² × 16 têtes en float32 ≈ 4 Go par couche) et le défaut
+      # 16384 comme la valeur 8192 ont été tués par un cgroup de 7 Go sur CPU
+      # (mesuré). TEI exige alors `--auto-truncate` ; cette troncature
+      # est INATTEIGNABLE : la Gateway borne déjà requête (2 000 car.) +
+      # document (4 000 car.) bien sous 4096 tokens et refuse au-delà (reject).
+      # Sur GPU, relever --max-batch-tokens (et retirer --auto-truncate).
+      - --max-batch-tokens
+      - "4096"
+      - --max-batch-requests
+      - "8"
+      - --auto-truncate
+    volumes:
+      - tei_data:/data
+    depends_on:
+      - ai-gateway
+    restart: unless-stopped
+
+networks:
+  internal:
+    driver: bridge
+
+volumes:
+  ollama_data:
+  tei_data:

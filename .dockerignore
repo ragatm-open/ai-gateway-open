@@ -1,0 +1,15 @@
+# `__pycache__/` ne filtrait que la RACINE du contexte ; une image antérieure (construite depuis le
+# checkout partagé) contient ainsi 7 .pyc non versionnés de app/__pycache__/ (créés le 2026-07-06). Les releases
+# passent par ops/release (git archive : aucun fichier non suivi) ; ces motifs protègent les builds de développement.
+**/__pycache__/
+**/*.pyc
+__pycache__/
+*.pyc
+.pytest_cache/
+tests/
+.env
+.env.example
+app.py
+README.md
+requirements-dev.txt
+.git/

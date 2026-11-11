@@ -1,0 +1,2893 @@
+openapi: 3.1.0
+info:
+  title: AI Gateway Open — gateway-api
+  version: 1.0.0-candidate.2
+  description: 'Contrat API commun RAGatm Open / AI Gateway Open / AI Gateway Pool Open. État : CANDIDATE_FOR_RATIFICATION
+    (ratification en attente). Dérivé des schémas réellement implémentés (app/schemas.py) par tools/build_openapi.py ; toute
+    divergence avec l''API servie est détectée par tests/open/test_open_openapi_conformance.py.'
+paths:
+  /health/live:
+    get:
+      summary: Health Live
+      description: 'Processus vivant et registre chargé. AUCUN appel réseau, AUCUNE
+
+        inférence, AUCUN chargement : c''est la sonde destinée au healthcheck
+
+        Docker et au monitoring automatique. Les sondes inférentielles
+
+        (/health/ready, /health/embeddings, /health/rerank) sont explicites et ne
+
+        doivent jamais être branchées sur un battement automatique.'
+      operationId: health_live_health_live_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Health Live Health Live Get
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '502':
+          description: Upstream en échec, délai ou sortie hors contrat
+          content:
+            application/json:
+              schema: &id001
+                $ref: '#/components/schemas/ErrorEnvelope'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '503':
+          description: Capacité désactivée, modèle non installé, saturation ou upstream indisponible
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Retry-After:
+              $ref: '#/components/headers/Retry-After'
+      parameters:
+      - $ref: '#/components/parameters/XRequestID'
+      x-gateway-capability:
+        name: health
+        default_state: ENABLED
+        required_for_compact: true
+      x-gateway-inferential: false
+  /health:
+    get:
+      summary: Health
+      operationId: health_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Health Health Get
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '502':
+          description: Upstream en échec, délai ou sortie hors contrat
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '503':
+          description: Capacité désactivée, modèle non installé, saturation ou upstream indisponible
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Retry-After:
+              $ref: '#/components/headers/Retry-After'
+      parameters:
+      - $ref: '#/components/parameters/XRequestID'
+      x-gateway-capability:
+        name: health
+        default_state: ENABLED
+        required_for_compact: false
+      x-gateway-inferential: false
+  /health/ready:
+    get:
+      summary: Health Ready
+      description: 'Readiness fonctionnelle : un embedding est réellement calculé et validé.
+
+
+        Résultat mis en cache `AI_GATEWAY_READINESS_CACHE_SECONDS` (60 s) et
+
+        protégé par un verrou : deux sondes simultanées n''en déclenchent qu''une.'
+      operationId: health_ready_health_ready_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '502':
+          description: Upstream en échec, délai ou sortie hors contrat
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '503':
+          description: Capacité désactivée, modèle non installé, saturation ou upstream indisponible
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Retry-After:
+              $ref: '#/components/headers/Retry-After'
+      parameters:
+      - $ref: '#/components/parameters/XRequestID'
+      x-gateway-capability:
+        name: embeddings
+        default_state: ENABLED
+        required_for_compact: false
+      x-gateway-inferential: true
+      x-gateway-probe: explicit_only
+  /health/embeddings:
+    get:
+      summary: Health Embeddings
+      description: 'Diagnostic par modèle gouverné.
+
+
+        Route de diagnostic : elle encode un texte de sonde par modèle du registre.
+
+        Elle n''est pas destinée à être appelée en boucle. Le réseau reste le seul
+
+        contrôle d''accès de ce service (UFW, bind local) : aucun secret, aucun
+
+        chemin de blob et aucune trace d''exception brute n''est renvoyé ici.'
+      operationId: health_embeddings_health_embeddings_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Health Embeddings Health Embeddings Get
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '502':
+          description: Upstream en échec, délai ou sortie hors contrat
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '503':
+          description: Capacité désactivée, modèle non installé, saturation ou upstream indisponible
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Retry-After:
+              $ref: '#/components/headers/Retry-After'
+      parameters:
+      - $ref: '#/components/parameters/XRequestID'
+      x-gateway-capability:
+        name: embeddings
+        default_state: ENABLED
+        required_for_compact: false
+      x-gateway-inferential: true
+      x-gateway-probe: explicit_only
+  /health/runtime:
+    get:
+      summary: Health Runtime
+      description: 'État de la gouvernance LLM et de la concurrence en cours.
+
+
+        Aucun appel upstream : tout vient du registre chargé et des jauges du
+
+        process — la route est appelable en boucle sans coût. Aucune donnée
+
+        sensible : pas d''URL, pas de contenu, uniquement des profils déclarés et
+
+        des compteurs.
+
+
+        Doctrine reprise du lot observabilité : le temps d''attente en file
+
+        d''Ollama n''est PAS observable. Cette route ne publie donc aucun
+
+        `queue_time` — et `total_ms - ollama_total_ms` n''en est pas un.'
+      operationId: health_runtime_health_runtime_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Health Runtime Health Runtime Get
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '502':
+          description: Upstream en échec, délai ou sortie hors contrat
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '503':
+          description: Capacité désactivée, modèle non installé, saturation ou upstream indisponible
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Retry-After:
+              $ref: '#/components/headers/Retry-After'
+      parameters:
+      - $ref: '#/components/parameters/XRequestID'
+      x-gateway-capability:
+        name: health
+        default_state: ENABLED
+        required_for_compact: true
+      x-gateway-inferential: false
+  /v1/models:
+    get:
+      summary: List Models
+      operationId: list_models_v1_models_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response List Models V1 Models Get
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '502':
+          description: Upstream en échec, délai ou sortie hors contrat
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '503':
+          description: Capacité désactivée, modèle non installé, saturation ou upstream indisponible
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Retry-After:
+              $ref: '#/components/headers/Retry-After'
+      parameters:
+      - $ref: '#/components/parameters/XRequestID'
+      x-gateway-capability:
+        name: catalog
+        default_state: ENABLED
+        required_for_compact: true
+      x-gateway-inferential: false
+  /v1/generate:
+    post:
+      summary: Generate
+      operationId: generate_v1_generate_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerateResponse'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '400':
+          description: Requête ou gouvernance refusée
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '502':
+          description: Upstream en échec, délai ou sortie hors contrat
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '503':
+          description: Capacité désactivée, modèle non installé, saturation ou upstream indisponible
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Retry-After:
+              $ref: '#/components/headers/Retry-After'
+        '413':
+          description: Corps > AI_GATEWAY_REQUEST_MAX_BYTES (request_too_large)
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+      parameters:
+      - $ref: '#/components/parameters/XRequestID'
+      x-gateway-capability:
+        name: generation
+        default_state: ENABLED
+        required_for_compact: true
+      x-gateway-inferential: true
+  /v1/generate/stream:
+    post:
+      summary: Generate Stream
+      description: 'Génération en flux NDJSON.
+
+
+        Une ligne JSON par événement : `{"type":"delta",...}` pour chaque fragment,
+
+        puis exactement un `{"type":"done",...}` portant les comptes de tokens. Une
+
+        rupture en cours de flux produit `{"type":"error",...}` et jamais de `done`.'
+      operationId: generate_stream_v1_generate_stream_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateRequest'
+        required: true
+      responses:
+        '200':
+          description: 'Flux NDJSON (application/x-ndjson, PAS du SSE) : une ligne JSON par événement ; exactement un `done`
+            par flux réussi ; un flux en erreur émet `error` et jamais `done`.'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+          content:
+            application/x-ndjson:
+              schema:
+                oneOf:
+                - $ref: '#/components/schemas/GenerateStreamDelta'
+                - $ref: '#/components/schemas/GenerateStreamDone'
+                - $ref: '#/components/schemas/GenerateStreamError'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '400':
+          description: Requête ou gouvernance refusée
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '502':
+          description: Upstream en échec, délai ou sortie hors contrat
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '503':
+          description: Capacité désactivée, modèle non installé, saturation ou upstream indisponible
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Retry-After:
+              $ref: '#/components/headers/Retry-After'
+        '413':
+          description: Corps > AI_GATEWAY_REQUEST_MAX_BYTES (request_too_large)
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+      parameters:
+      - $ref: '#/components/parameters/XRequestID'
+      x-gateway-stream:
+        media_type: application/x-ndjson
+        framing: ndjson
+        events:
+        - delta
+        - done
+        - error
+        client_cancellation: fermer la connexion ferme l'appel upstream
+      x-gateway-capability:
+        name: generation
+        default_state: ENABLED
+        required_for_compact: true
+      x-gateway-inferential: true
+  /v1/chat:
+    post:
+      summary: Chat
+      operationId: chat_v1_chat_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatResponse'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '400':
+          description: Requête ou gouvernance refusée
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '502':
+          description: Upstream en échec, délai ou sortie hors contrat
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '503':
+          description: Capacité désactivée, modèle non installé, saturation ou upstream indisponible
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Retry-After:
+              $ref: '#/components/headers/Retry-After'
+        '413':
+          description: Corps > AI_GATEWAY_REQUEST_MAX_BYTES (request_too_large)
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+      parameters:
+      - $ref: '#/components/parameters/XRequestID'
+      x-gateway-capability:
+        name: chat
+        default_state: DISABLED
+        required_for_compact: false
+      x-gateway-inferential: true
+  /v1/chat/stream:
+    post:
+      summary: Chat Stream
+      description: 'Chat en flux NDJSON : `{"type":"thinking"}` (si exposé),
+
+        `{"type":"content"}`, puis exactement un `{"type":"done"}` portant
+
+        `done_reason` et `content_empty`. Une rupture en cours de flux produit
+
+        `{"type":"error"}` et jamais de `done`.'
+      operationId: chat_stream_v1_chat_stream_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatRequest'
+        required: true
+      responses:
+        '200':
+          description: 'Flux NDJSON (application/x-ndjson, PAS du SSE) : une ligne JSON par événement ; exactement un `done`
+            par flux réussi ; un flux en erreur émet `error` et jamais `done`.'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+          content:
+            application/x-ndjson:
+              schema:
+                oneOf:
+                - $ref: '#/components/schemas/ChatStreamThinking'
+                - $ref: '#/components/schemas/ChatStreamContent'
+                - $ref: '#/components/schemas/ChatStreamDone'
+                - $ref: '#/components/schemas/GenerateStreamError'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '400':
+          description: Requête ou gouvernance refusée
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '502':
+          description: Upstream en échec, délai ou sortie hors contrat
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '503':
+          description: Capacité désactivée, modèle non installé, saturation ou upstream indisponible
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Retry-After:
+              $ref: '#/components/headers/Retry-After'
+        '413':
+          description: Corps > AI_GATEWAY_REQUEST_MAX_BYTES (request_too_large)
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+      parameters:
+      - $ref: '#/components/parameters/XRequestID'
+      x-gateway-stream:
+        media_type: application/x-ndjson
+        framing: ndjson
+        events:
+        - thinking
+        - content
+        - done
+        - error
+        client_cancellation: fermer la connexion ferme l'appel upstream
+      x-gateway-capability:
+        name: chat
+        default_state: DISABLED
+        required_for_compact: false
+      x-gateway-inferential: true
+  /v1/rerank:
+    post:
+      summary: Rerank
+      operationId: rerank_v1_rerank_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RerankRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RerankResponse'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '400':
+          description: Requête ou gouvernance refusée
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '502':
+          description: Upstream en échec, délai ou sortie hors contrat
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '503':
+          description: Capacité désactivée, modèle non installé, saturation ou upstream indisponible
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Retry-After:
+              $ref: '#/components/headers/Retry-After'
+        '413':
+          description: Corps > AI_GATEWAY_REQUEST_MAX_BYTES (request_too_large)
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+      parameters:
+      - $ref: '#/components/parameters/XRequestID'
+      x-gateway-capability:
+        name: rerank
+        default_state: DISABLED
+        required_for_compact: true
+      x-gateway-inferential: true
+  /health/rerank:
+    get:
+      summary: Health Rerank
+      description: 'Diagnostic de la capability reranking.
+
+
+        Capability désactivée => 200 avec status `disabled` : c''est un état de
+
+        CONFIGURATION voulu, pas une panne. Backend absent/divergent => 503.
+
+        Cette route sonde réellement le backend (info + scoring d''une paire
+
+        interne constante) : ne pas l''appeler en boucle.
+
+
+        Indépendance totale de `/health/ready` : un reranker en panne ne rend
+
+        jamais le conteneur unhealthy pour generate/embeddings.'
+      operationId: health_rerank_health_rerank_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '502':
+          description: Upstream en échec, délai ou sortie hors contrat
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '503':
+          description: Capacité désactivée, modèle non installé, saturation ou upstream indisponible
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Retry-After:
+              $ref: '#/components/headers/Retry-After'
+      parameters:
+      - $ref: '#/components/parameters/XRequestID'
+      x-gateway-capability:
+        name: rerank
+        default_state: DISABLED
+        required_for_compact: false
+      x-gateway-inferential: true
+      x-gateway-probe: explicit_only
+  /health/asr:
+    get:
+      summary: Health Asr
+      description: 'Diagnostic de la capability ASR (contrat §69-§72).
+
+
+        Capability désactivée => 200 `disabled` (configuration voulue). Backend
+
+        absent ou identité divergente => 503, et la capability n''est PAS servie.
+
+        Ne charge JAMAIS le modèle : /health et /info backend sont sans effet
+
+        sur le worker. Indépendant de /health/ready.'
+      operationId: health_asr_health_asr_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '502':
+          description: Upstream en échec, délai ou sortie hors contrat
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '503':
+          description: Capacité désactivée, modèle non installé, saturation ou upstream indisponible
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Retry-After:
+              $ref: '#/components/headers/Retry-After'
+      parameters:
+      - $ref: '#/components/parameters/XRequestID'
+      x-gateway-capability:
+        name: asr
+        default_state: DISABLED
+        required_for_compact: false
+      x-gateway-inferential: false
+  /v1/embeddings:
+    post:
+      summary: Embeddings
+      operationId: embeddings_v1_embeddings_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmbeddingsRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmbeddingsResponse'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '400':
+          description: Requête ou gouvernance refusée
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '502':
+          description: Upstream en échec, délai ou sortie hors contrat
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '503':
+          description: Capacité désactivée, modèle non installé, saturation ou upstream indisponible
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Retry-After:
+              $ref: '#/components/headers/Retry-After'
+        '413':
+          description: Corps > AI_GATEWAY_REQUEST_MAX_BYTES (request_too_large)
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+      parameters:
+      - $ref: '#/components/parameters/XRequestID'
+      x-gateway-capability:
+        name: embeddings
+        default_state: ENABLED
+        required_for_compact: true
+      x-gateway-inferential: true
+  /v1/vision/analyze:
+    post:
+      summary: Vision Analyze
+      operationId: vision_analyze_v1_vision_analyze_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VisionAnalyzeRequest'
+        required: true
+      responses:
+        '200':
+          description: Résultat V1 ou V2 selon schema_version
+          content:
+            application/json:
+              schema:
+                oneOf:
+                - $ref: '#/components/schemas/VisionAnalyzeResponse'
+                - $ref: '#/components/schemas/VisionAnalyzeResponseV2'
+                title: Response 200 Vision Analyze V1 Vision Analyze Post
+                discriminator:
+                  propertyName: schema_version
+                  mapping:
+                    '1': '#/components/schemas/VisionAnalyzeResponse'
+                    '2': '#/components/schemas/VisionAnalyzeResponseV2'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '400':
+          description: Requête ou gouvernance refusée
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '502':
+          description: Upstream en échec, délai ou sortie hors contrat
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '503':
+          description: Capacité désactivée, modèle non installé, saturation ou upstream indisponible
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Retry-After:
+              $ref: '#/components/headers/Retry-After'
+      parameters:
+      - $ref: '#/components/parameters/XRequestID'
+      x-gateway-capability:
+        name: vision
+        default_state: DISABLED
+        required_for_compact: false
+      x-gateway-inferential: true
+  /v1/vision/capacity:
+    get:
+      summary: Vision Capacity
+      description: 'Sonde de capacité ADVISORY (lot CV-CAPACITY) : « est-il raisonnable
+
+        d''envoyer une requête vision à CETTE instance maintenant ? ».
+
+
+        Lecture seule : n''acquiert aucun slot, n''appelle jamais /api/generate, ne
+
+        charge aucun modèle, ne touche ni compteurs ni jauges. Toujours 200 —
+
+        `saturated` n''est pas une erreur de la sonde. Le POST /v1/vision/analyze
+
+        reste la seule autorité d''admission : un 503 `vision_overloaded` après une
+
+        sonde « disponible » est un comportement valide (course inévitable).
+
+        `retry_after_seconds` est la constante du 503, pas une estimation.'
+      operationId: vision_capacity_v1_vision_capacity_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VisionCapacityResponse'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '502':
+          description: Upstream en échec, délai ou sortie hors contrat
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '503':
+          description: Capacité désactivée, modèle non installé, saturation ou upstream indisponible
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Retry-After:
+              $ref: '#/components/headers/Retry-After'
+      parameters:
+      - $ref: '#/components/parameters/XRequestID'
+      x-gateway-capability:
+        name: vision
+        default_state: DISABLED
+        required_for_compact: false
+      x-gateway-inferential: false
+  /health/vision:
+    get:
+      summary: Health Vision
+      description: 'État de la capability vision. AUCUNE inférence, AUCUN chargement :
+
+        registre + /api/tags (installé, digest) + /api/ps (résident) seulement.
+
+        installed=True + resident=False = disponible, PAS unhealthy.'
+      operationId: health_vision_health_vision_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '502':
+          description: Upstream en échec, délai ou sortie hors contrat
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '503':
+          description: Capacité désactivée, modèle non installé, saturation ou upstream indisponible
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Retry-After:
+              $ref: '#/components/headers/Retry-After'
+      parameters:
+      - $ref: '#/components/parameters/XRequestID'
+      x-gateway-capability:
+        name: vision
+        default_state: DISABLED
+        required_for_compact: false
+      x-gateway-inferential: false
+  /v1/audio/transcriptions:
+    post:
+      summary: Create Transcription
+      operationId: create_transcription_v1_audio_transcriptions_post
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '400':
+          description: Requête ou gouvernance refusée
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '502':
+          description: Upstream en échec, délai ou sortie hors contrat
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '503':
+          description: Capacité désactivée, modèle non installé, saturation ou upstream indisponible
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Retry-After:
+              $ref: '#/components/headers/Retry-After'
+      parameters:
+      - $ref: '#/components/parameters/XRequestID'
+      x-gateway-capability:
+        name: asr
+        default_state: DISABLED
+        required_for_compact: false
+      x-gateway-inferential: true
+  /v1/audio/transcriptions/{job_id}:
+    get:
+      summary: Get Transcription
+      operationId: get_transcription_v1_audio_transcriptions__job_id__get
+      parameters:
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Job Id
+      - name: format
+        in: query
+        required: false
+        schema:
+          type: string
+          pattern: ^(json|text|srt|vtt)$
+          default: json
+          title: Format
+      - name: wait_ms
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 30000
+          minimum: 0
+          default: 0
+          title: Wait Ms
+      - $ref: '#/components/parameters/XRequestID'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '502':
+          description: Upstream en échec, délai ou sortie hors contrat
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '503':
+          description: Capacité désactivée, modèle non installé, saturation ou upstream indisponible
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Retry-After:
+              $ref: '#/components/headers/Retry-After'
+      x-gateway-capability:
+        name: asr
+        default_state: DISABLED
+        required_for_compact: false
+      x-gateway-inferential: true
+    delete:
+      summary: Delete Transcription
+      operationId: delete_transcription_v1_audio_transcriptions__job_id__delete
+      parameters:
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Job Id
+      - $ref: '#/components/parameters/XRequestID'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '400':
+          description: Requête ou gouvernance refusée
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '502':
+          description: Upstream en échec, délai ou sortie hors contrat
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+        '503':
+          description: Capacité désactivée, modèle non installé, saturation ou upstream indisponible
+          content:
+            application/json:
+              schema: *id001
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            Retry-After:
+              $ref: '#/components/headers/Retry-After'
+      x-gateway-capability:
+        name: asr
+        default_state: DISABLED
+        required_for_compact: false
+      x-gateway-inferential: true
+components:
+  schemas:
+    ChatAssistantMessage:
+      properties:
+        role:
+          type: string
+          const: assistant
+          title: Role
+          default: assistant
+        content:
+          type: string
+          title: Content
+      type: object
+      required:
+      - content
+      title: ChatAssistantMessage
+    ChatMessage:
+      properties:
+        role:
+          type: string
+          enum:
+          - system
+          - user
+          - assistant
+          title: Role
+        content:
+          type: string
+          title: Content
+      additionalProperties: false
+      type: object
+      required:
+      - role
+      - content
+      title: ChatMessage
+    ChatRequest:
+      properties:
+        model:
+          type: string
+          minLength: 1
+          title: Model
+        messages:
+          items:
+            $ref: '#/components/schemas/ChatMessage'
+          type: array
+          minItems: 1
+          title: Messages
+        temperature:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Temperature
+          default: 0.2
+        options:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Options
+        keep_alive:
+          anyOf:
+          - type: string
+          - type: integer
+          - type: number
+          - type: 'null'
+          title: Keep Alive
+        reasoning:
+          anyOf:
+          - type: string
+            enum:
+            - none
+            - 'off'
+            - 'on'
+            - low
+            - medium
+            - high
+          - type: 'null'
+          title: Reasoning
+        response_format:
+          anyOf:
+          - $ref: '#/components/schemas/ChatResponseFormat'
+          - type: 'null'
+      additionalProperties: false
+      type: object
+      required:
+      - model
+      - messages
+      title: ChatRequest
+    ChatResponse:
+      properties:
+        provider:
+          type: string
+          title: Provider
+          default: ai_gateway
+        upstream_provider:
+          type: string
+          title: Upstream Provider
+          default: ollama
+        model:
+          type: string
+          title: Model
+        message:
+          $ref: '#/components/schemas/ChatAssistantMessage'
+        thinking:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Thinking
+        thinking_exposed:
+          type: boolean
+          title: Thinking Exposed
+          default: false
+        thinking_chars:
+          type: integer
+          title: Thinking Chars
+          default: 0
+        reasoning:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reasoning
+        done:
+          type: boolean
+          title: Done
+          default: true
+        done_reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Done Reason
+        content_empty:
+          type: boolean
+          title: Content Empty
+        tokens:
+          $ref: '#/components/schemas/TokenCounts'
+        usage:
+          $ref: '#/components/schemas/Usage'
+        cost:
+          type: number
+          title: Cost
+          default: 0.0
+        structured_output:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Structured Output
+      type: object
+      required:
+      - model
+      - message
+      - content_empty
+      - tokens
+      - usage
+      title: ChatResponse
+    ChatResponseFormat:
+      properties:
+        type:
+          type: string
+          const: json_schema
+          title: Type
+        schema:
+          additionalProperties: true
+          type: object
+          title: Schema
+      additionalProperties: false
+      type: object
+      required:
+      - type
+      - schema
+      title: ChatResponseFormat
+    EmbeddingsRequest:
+      properties:
+        texts:
+          items:
+            type: string
+          type: array
+          minItems: 1
+          title: Texts
+        model:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Model
+        keep_alive:
+          anyOf:
+          - type: string
+          - type: integer
+          - type: number
+          - type: 'null'
+          title: Keep Alive
+        task:
+          anyOf:
+          - type: string
+            enum:
+            - query
+            - document
+          - type: 'null'
+          title: Task
+      additionalProperties: false
+      type: object
+      required:
+      - texts
+      title: EmbeddingsRequest
+    EmbeddingsResponse:
+      properties:
+        provider:
+          type: string
+          title: Provider
+          default: ai_gateway
+        upstream_provider:
+          type: string
+          title: Upstream Provider
+          default: ollama
+        model:
+          type: string
+          title: Model
+        dimension:
+          type: integer
+          title: Dimension
+        embeddings:
+          items:
+            items:
+              type: number
+            type: array
+          type: array
+          title: Embeddings
+        usage:
+          $ref: '#/components/schemas/EmbeddingsUsage'
+        cost:
+          type: number
+          title: Cost
+          default: 0.0
+        governed:
+          type: boolean
+          title: Governed
+          default: false
+        model_logical:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Model Logical
+        model_digest:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Model Digest
+        expected_digest:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Expected Digest
+        identity_verified:
+          type: boolean
+          title: Identity Verified
+          default: false
+        verified_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Verified At
+        pipeline_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Pipeline Id
+        task:
+          type: string
+          title: Task
+          default: document
+        normalized:
+          type: boolean
+          title: Normalized
+          default: false
+        truncated:
+          items:
+            type: boolean
+          type: array
+          title: Truncated
+        upstream_endpoint:
+          type: string
+          title: Upstream Endpoint
+          default: /api/embed
+      type: object
+      required:
+      - model
+      - dimension
+      - embeddings
+      - usage
+      title: EmbeddingsResponse
+      description: 'Réponse d''embeddings.
+
+
+        Les sept premiers champs sont ceux du contrat historique : ils gardent leur
+
+        nom, leur type et leur sens. Tout ce qui suit est **strictement additif** —
+
+        un client qui les ignore n''observe aucun changement.'
+    EmbeddingsUsage:
+      properties:
+        total_texts:
+          type: integer
+          title: Total Texts
+      type: object
+      required:
+      - total_texts
+      title: EmbeddingsUsage
+    GenerateRequest:
+      properties:
+        prompt:
+          type: string
+          minLength: 1
+          title: Prompt
+        model:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Model
+        temperature:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Temperature
+          default: 0.2
+        system:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: System
+        options:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Options
+        think:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Think
+        keep_alive:
+          anyOf:
+          - type: string
+          - type: integer
+          - type: number
+          - type: 'null'
+          title: Keep Alive
+        format:
+          anyOf:
+          - type: string
+            const: json
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Format
+        response_format:
+          anyOf:
+          - $ref: '#/components/schemas/ChatResponseFormat'
+          - type: 'null'
+      additionalProperties: false
+      type: object
+      required:
+      - prompt
+      title: GenerateRequest
+    GenerateResponse:
+      properties:
+        text:
+          type: string
+          title: Text
+        provider:
+          type: string
+          title: Provider
+          default: ai_gateway
+        upstream_provider:
+          type: string
+          title: Upstream Provider
+          default: ollama
+        model:
+          type: string
+          title: Model
+        tokens:
+          $ref: '#/components/schemas/TokenCounts'
+        usage:
+          $ref: '#/components/schemas/Usage'
+        cost:
+          type: number
+          title: Cost
+          default: 0.0
+        done:
+          type: boolean
+          title: Done
+          default: true
+        done_reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Done Reason
+        structured_output:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Structured Output
+        response_schema_sha256:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Response Schema Sha256
+      type: object
+      required:
+      - text
+      - model
+      - tokens
+      - usage
+      title: GenerateResponse
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    RerankDocument:
+      properties:
+        id:
+          type: string
+          maxLength: 128
+          minLength: 1
+          title: Id
+        text:
+          type: string
+          minLength: 1
+          title: Text
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - text
+      title: RerankDocument
+      description: 'Passage à scorer. `id` est un identifiant OPAQUE du client (ses chunks,
+
+        ses conventions) : renvoyé tel quel, jamais interprété, jamais journalisé.'
+    RerankRequest:
+      properties:
+        query:
+          type: string
+          minLength: 1
+          title: Query
+        documents:
+          items:
+            $ref: '#/components/schemas/RerankDocument'
+          type: array
+          minItems: 1
+          title: Documents
+        model:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Model
+        top_n:
+          anyOf:
+          - type: integer
+            minimum: 1.0
+          - type: 'null'
+          title: Top N
+      additionalProperties: false
+      type: object
+      required:
+      - query
+      - documents
+      title: RerankRequest
+    RerankResponse:
+      properties:
+        provider:
+          type: string
+          title: Provider
+          default: ai_gateway
+        upstream_provider:
+          type: string
+          title: Upstream Provider
+          default: local_cross_encoder
+        model:
+          type: string
+          title: Model
+        model_logical:
+          type: string
+          title: Model Logical
+        model_revision:
+          type: string
+          title: Model Revision
+        results:
+          items:
+            $ref: '#/components/schemas/RerankResult'
+          type: array
+          title: Results
+        usage:
+          $ref: '#/components/schemas/RerankUsage'
+        score_semantics:
+          $ref: '#/components/schemas/RerankScoreSemantics'
+      type: object
+      required:
+      - model
+      - model_logical
+      - model_revision
+      - results
+      - usage
+      - score_semantics
+      title: RerankResponse
+    RerankResult:
+      properties:
+        index:
+          type: integer
+          title: Index
+        id:
+          type: string
+          title: Id
+        relevance_score:
+          type: number
+          title: Relevance Score
+      type: object
+      required:
+      - index
+      - id
+      - relevance_score
+      title: RerankResult
+    RerankScoreSemantics:
+      properties:
+        higher_is_better:
+          type: boolean
+          title: Higher Is Better
+          default: true
+        calibrated:
+          type: boolean
+          title: Calibrated
+          default: false
+      type: object
+      title: RerankScoreSemantics
+      description: 'Sémantique EXPLICITE du score : un cross-encoder produit des logits
+
+        ordinaux. Jamais de champ « probability »/« confidence » tant que
+
+        `calibrated` est false.'
+    RerankUsage:
+      properties:
+        documents:
+          type: integer
+          title: Documents
+        returned:
+          type: integer
+          title: Returned
+      type: object
+      required:
+      - documents
+      - returned
+      title: RerankUsage
+    TokenCounts:
+      properties:
+        prompt:
+          type: integer
+          title: Prompt
+        completion:
+          type: integer
+          title: Completion
+        total:
+          type: integer
+          title: Total
+      type: object
+      required:
+      - prompt
+      - completion
+      - total
+      title: TokenCounts
+    Usage:
+      properties:
+        prompt_tokens:
+          type: integer
+          title: Prompt Tokens
+        completion_tokens:
+          type: integer
+          title: Completion Tokens
+        total_tokens:
+          type: integer
+          title: Total Tokens
+      type: object
+      required:
+      - prompt_tokens
+      - completion_tokens
+      - total_tokens
+      title: Usage
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+    VisionAnalyzeRequest:
+      properties:
+        schema_version:
+          type: string
+          enum:
+          - '1'
+          - '2'
+          - '3'
+          title: Schema Version
+        task:
+          type: string
+          enum:
+          - auto
+          - describe
+          - table
+          - diagram
+          - chart
+          - technical_drawing
+          - semantic_extract
+          title: Task
+        image:
+          $ref: '#/components/schemas/VisionImage'
+        model:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Model
+        locale:
+          type: string
+          enum:
+          - fr
+          - en
+          title: Locale
+          default: fr
+        request_id:
+          anyOf:
+          - type: string
+            maxLength: 128
+            minLength: 1
+          - type: 'null'
+          title: Request Id
+        context:
+          anyOf:
+          - $ref: '#/components/schemas/VisionContext'
+          - type: 'null'
+      additionalProperties: false
+      type: object
+      required:
+      - schema_version
+      - task
+      - image
+      title: VisionAnalyzeRequest
+    VisionAnalyzeResponse:
+      properties:
+        status:
+          type: string
+          const: ok
+          title: Status
+          default: ok
+        provider:
+          type: string
+          const: ai_gateway
+          title: Provider
+          default: ai_gateway
+        upstream_provider:
+          type: string
+          const: ollama
+          title: Upstream Provider
+          default: ollama
+        schema_version:
+          type: string
+          const: '1'
+          title: Schema Version
+          default: '1'
+        task:
+          type: string
+          enum:
+          - auto
+          - describe
+          - table
+          - diagram
+          - chart
+          - technical_drawing
+          title: Task
+        visual_kind:
+          type: string
+          enum:
+          - photo
+          - table
+          - diagram
+          - chart
+          - technical_drawing
+          - mixed
+          - decorative
+          - unknown
+          title: Visual Kind
+        request_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Request Id
+        summary:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Summary
+        warnings:
+          items:
+            type: string
+            enum:
+            - low_resolution
+            - unreadable_region
+            - ambiguous_structure
+            - incomplete_axes
+            - insufficient_visual_evidence
+          type: array
+          title: Warnings
+        requires_visual_check:
+          type: boolean
+          title: Requires Visual Check
+        payload:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Payload
+        model:
+          $ref: '#/components/schemas/VisionModelIdentity'
+        pipeline:
+          $ref: '#/components/schemas/VisionPipelineIdentity'
+        image:
+          $ref: '#/components/schemas/VisionImageDiagnostics'
+        usage:
+          $ref: '#/components/schemas/VisionUsage'
+        latency_ms:
+          type: integer
+          title: Latency Ms
+        truncated:
+          type: boolean
+          const: false
+          title: Truncated
+          default: false
+      additionalProperties: false
+      type: object
+      required:
+      - task
+      - visual_kind
+      - requires_visual_check
+      - model
+      - pipeline
+      - image
+      - usage
+      - latency_ms
+      title: VisionAnalyzeResponse
+    VisionAnalyzeResponseV2:
+      properties:
+        status:
+          type: string
+          const: ok
+          title: Status
+          default: ok
+        provider:
+          type: string
+          const: ai_gateway
+          title: Provider
+          default: ai_gateway
+        upstream_provider:
+          type: string
+          const: ollama
+          title: Upstream Provider
+          default: ollama
+        schema_version:
+          type: string
+          const: '2'
+          title: Schema Version
+          default: '2'
+        task:
+          type: string
+          enum:
+          - auto
+          - describe
+          - table
+          - diagram
+          - chart
+          - technical_drawing
+          title: Task
+        visual_kind:
+          type: string
+          enum:
+          - photo
+          - table
+          - diagram
+          - chart
+          - technical_drawing
+          - mixed
+          - decorative
+          - unknown
+          title: Visual Kind
+        request_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Request Id
+        summary:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Summary
+        warnings:
+          items:
+            type: string
+            enum:
+            - low_resolution
+            - unreadable_region
+            - ambiguous_structure
+            - incomplete_axes
+            - insufficient_visual_evidence
+          type: array
+          title: Warnings
+        requires_visual_check:
+          type: boolean
+          title: Requires Visual Check
+        payload:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Payload
+        model:
+          $ref: '#/components/schemas/VisionModelIdentity'
+        pipeline:
+          $ref: '#/components/schemas/VisionPipelineIdentityV2'
+        image:
+          $ref: '#/components/schemas/VisionImageDiagnosticsV2'
+        usage:
+          $ref: '#/components/schemas/VisionUsageV2'
+        latency_ms:
+          type: integer
+          title: Latency Ms
+        truncated:
+          type: boolean
+          const: false
+          title: Truncated
+          default: false
+      additionalProperties: false
+      type: object
+      required:
+      - task
+      - visual_kind
+      - requires_visual_check
+      - model
+      - pipeline
+      - image
+      - usage
+      - latency_ms
+      title: VisionAnalyzeResponseV2
+    VisionCapacity:
+      properties:
+        enabled:
+          type: boolean
+          title: Enabled
+        status:
+          type: string
+          enum:
+          - available
+          - saturated
+          - disabled
+          title: Status
+        max_concurrency:
+          type: integer
+          minimum: 1.0
+          title: Max Concurrency
+        in_flight:
+          type: integer
+          minimum: 0.0
+          title: In Flight
+        available_slots:
+          type: integer
+          minimum: 0.0
+          title: Available Slots
+        retry_after_seconds:
+          type: integer
+          minimum: 1.0
+          title: Retry After Seconds
+      additionalProperties: false
+      type: object
+      required:
+      - enabled
+      - status
+      - max_concurrency
+      - in_flight
+      - available_slots
+      - retry_after_seconds
+      title: VisionCapacity
+    VisionCapacityModel:
+      properties:
+        logical:
+          type: string
+          title: Logical
+        resident:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Resident
+        status:
+          type: string
+          enum:
+          - ok
+          - unavailable
+          title: Status
+      additionalProperties: false
+      type: object
+      required:
+      - logical
+      - resident
+      - status
+      title: VisionCapacityModel
+      description: 'Diagnostic de résidence (lecture `/api/ps`, jamais un chargement).
+
+        `resident` null et `status` unavailable quand Ollama ne répond pas dans
+
+        le délai court : la capacité d''admission reste servie.'
+    VisionCapacityResponse:
+      properties:
+        provider:
+          type: string
+          const: ai_gateway
+          title: Provider
+          default: ai_gateway
+        contract_version:
+          type: string
+          const: '1'
+          title: Contract Version
+          default: '1'
+        scope:
+          type: string
+          const: instance
+          title: Scope
+          default: instance
+        environment:
+          type: string
+          title: Environment
+        advisory:
+          type: boolean
+          const: true
+          title: Advisory
+          default: true
+        vision:
+          $ref: '#/components/schemas/VisionCapacity'
+        model:
+          $ref: '#/components/schemas/VisionCapacityModel'
+      additionalProperties: false
+      type: object
+      required:
+      - environment
+      - vision
+      - model
+      title: VisionCapacityResponse
+    VisionContext:
+      properties:
+        caption:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Caption
+        alt_text:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Alt Text
+        nearby_text:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Nearby Text
+      additionalProperties: false
+      type: object
+      title: VisionContext
+    VisionImage:
+      properties:
+        data:
+          type: string
+          maxLength: 5592408
+          minLength: 1
+          title: Data
+        mime_type:
+          type: string
+          enum:
+          - image/png
+          - image/jpeg
+          - image/webp
+          title: Mime Type
+      additionalProperties: false
+      type: object
+      required:
+      - data
+      - mime_type
+      title: VisionImage
+    VisionImageDiagnostics:
+      properties:
+        width:
+          type: integer
+          title: Width
+        height:
+          type: integer
+          title: Height
+        pixels:
+          type: integer
+          title: Pixels
+        bytes:
+          type: integer
+          title: Bytes
+        format:
+          type: string
+          enum:
+          - png
+          - jpeg
+          - webp
+          title: Format
+      additionalProperties: false
+      type: object
+      required:
+      - width
+      - height
+      - pixels
+      - bytes
+      - format
+      title: VisionImageDiagnostics
+    VisionImageDiagnosticsV2:
+      properties:
+        width:
+          type: integer
+          title: Width
+        height:
+          type: integer
+          title: Height
+        pixels:
+          type: integer
+          title: Pixels
+        bytes:
+          type: integer
+          title: Bytes
+        format:
+          type: string
+          enum:
+          - png
+          - jpeg
+          - webp
+          title: Format
+        source_sha256:
+          type: string
+          pattern: ^[0-9a-f]{64}$
+          title: Source Sha256
+        normalized_sha256:
+          type: string
+          pattern: ^[0-9a-f]{64}$
+          title: Normalized Sha256
+        normalized_format:
+          type: string
+          const: png
+          title: Normalized Format
+        normalizer_id:
+          type: string
+          title: Normalizer Id
+      additionalProperties: false
+      type: object
+      required:
+      - width
+      - height
+      - pixels
+      - bytes
+      - format
+      - source_sha256
+      - normalized_sha256
+      - normalized_format
+      - normalizer_id
+      title: VisionImageDiagnosticsV2
+    VisionInferenceIdentity:
+      properties:
+        temperature:
+          type: number
+          title: Temperature
+        seed:
+          type: integer
+          title: Seed
+        num_ctx:
+          type: integer
+          title: Num Ctx
+        num_predict:
+          type: integer
+          title: Num Predict
+      additionalProperties: false
+      type: object
+      required:
+      - temperature
+      - seed
+      - num_ctx
+      - num_predict
+      title: VisionInferenceIdentity
+    VisionModelIdentity:
+      properties:
+        logical:
+          type: string
+          title: Logical
+        concrete:
+          type: string
+          title: Concrete
+        digest:
+          type: string
+          title: Digest
+      additionalProperties: false
+      type: object
+      required:
+      - logical
+      - concrete
+      - digest
+      title: VisionModelIdentity
+    VisionPipelineIdentity:
+      properties:
+        prompt_profile:
+          type: string
+          title: Prompt Profile
+        prompt_profile_version:
+          type: string
+          title: Prompt Profile Version
+        pipeline_id:
+          type: string
+          title: Pipeline Id
+      additionalProperties: false
+      type: object
+      required:
+      - prompt_profile
+      - prompt_profile_version
+      - pipeline_id
+      title: VisionPipelineIdentity
+    VisionPipelineIdentityV2:
+      properties:
+        prompt_profile:
+          type: string
+          title: Prompt Profile
+        prompt_profile_version:
+          type: string
+          title: Prompt Profile Version
+        pipeline_id:
+          type: string
+          title: Pipeline Id
+        fingerprint:
+          type: string
+          pattern: ^vision-v1:[0-9a-f]{64}$
+          title: Fingerprint
+        system_prompt_sha256:
+          type: string
+          pattern: ^[0-9a-f]{64}$
+          title: System Prompt Sha256
+        task_prompt_sha256:
+          type: string
+          pattern: ^[0-9a-f]{64}$
+          title: Task Prompt Sha256
+        model_schema_sha256:
+          type: string
+          pattern: ^[0-9a-f]{64}$
+          title: Model Schema Sha256
+        model_schema_hash_algorithm:
+          type: string
+          title: Model Schema Hash Algorithm
+        inference:
+          $ref: '#/components/schemas/VisionInferenceIdentity'
+        retry:
+          $ref: '#/components/schemas/VisionRetryIdentity'
+      additionalProperties: false
+      type: object
+      required:
+      - prompt_profile
+      - prompt_profile_version
+      - pipeline_id
+      - fingerprint
+      - system_prompt_sha256
+      - task_prompt_sha256
+      - model_schema_sha256
+      - model_schema_hash_algorithm
+      - inference
+      - retry
+      title: VisionPipelineIdentityV2
+    VisionRetryIdentity:
+      properties:
+        max_attempts:
+          type: integer
+          title: Max Attempts
+        trigger:
+          type: string
+          title: Trigger
+        temperature:
+          type: number
+          title: Temperature
+        seed:
+          type: integer
+          title: Seed
+      additionalProperties: false
+      type: object
+      required:
+      - max_attempts
+      - trigger
+      - temperature
+      - seed
+      title: VisionRetryIdentity
+    VisionUsage:
+      properties:
+        prompt_tokens:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Prompt Tokens
+        completion_tokens:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Completion Tokens
+        total_tokens:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Total Tokens
+      additionalProperties: false
+      type: object
+      title: VisionUsage
+    VisionUsageV2:
+      properties:
+        prompt_tokens:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Prompt Tokens
+        completion_tokens:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Completion Tokens
+        total_tokens:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Total Tokens
+        attempts:
+          type: integer
+          enum:
+          - 1
+          - 2
+          title: Attempts
+      additionalProperties: false
+      type: object
+      required:
+      - attempts
+      title: VisionUsageV2
+    ErrorEnvelope:
+      type: object
+      required:
+      - detail
+      description: Enveloppe d'erreur unique de la Gateway. `message` est fixe et public (jamais d'URL interne ni de contenu)
+        ; `code` est l'identifiant stable quand il existe.
+      properties:
+        detail:
+          type: object
+          required:
+          - status
+          - provider
+          - message
+          properties:
+            status:
+              type: string
+              const: error
+            provider:
+              type: string
+              enum:
+              - ai_gateway
+              - ollama
+              - local_cross_encoder
+            message:
+              type: string
+            code:
+              type: string
+            retryable:
+              type: boolean
+            retry_after_seconds:
+              type: integer
+            errors:
+              type: array
+              items:
+                type: object
+              description: Détail de validation (400 payload invalide)
+          additionalProperties: true
+    GenerateStreamDelta:
+      description: Fragment de texte. Émis uniquement si le fragment est non vide.
+      properties:
+        type:
+          const: delta
+          default: delta
+          title: Type
+          type: string
+        delta:
+          title: Delta
+          type: string
+        done:
+          const: false
+          default: false
+          title: Done
+          type: boolean
+      required:
+      - delta
+      title: GenerateStreamDelta
+      type: object
+    GenerateStreamDone:
+      description: 'Événement final d''un flux abouti. Exactement un par flux réussi.
+
+
+        `tokens` et `usage` portent la même sémantique qu''en non-stream, aux mêmes
+
+        valeurs : un compte absent vaut 0.'
+      properties:
+        type:
+          const: done
+          default: done
+          title: Type
+          type: string
+        delta:
+          const: ''
+          default: ''
+          title: Delta
+          type: string
+        done:
+          const: true
+          default: true
+          title: Done
+          type: boolean
+        model:
+          title: Model
+          type: string
+        tokens:
+          $ref: '#/components/schemas/TokenCounts'
+        usage:
+          $ref: '#/components/schemas/Usage'
+        done_reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Done Reason
+      required:
+      - model
+      - tokens
+      - usage
+      title: GenerateStreamDone
+      type: object
+    StreamErrorDetail:
+      properties:
+        code:
+          title: Code
+          type: string
+        message:
+          title: Message
+          type: string
+      required:
+      - code
+      - message
+      title: StreamErrorDetail
+      type: object
+    GenerateStreamError:
+      description: 'Rupture survenue APRÈS l''envoi des en-têtes HTTP.
+
+
+        Une panne détectée avant le premier octet reste un code HTTP classique
+
+        (502) : cet événement ne concerne que ce qui casse en cours de flux, quand
+
+        le statut de la réponse est déjà parti. Un flux en erreur ne produit jamais
+
+        d''événement `done`.'
+      properties:
+        type:
+          const: error
+          default: error
+          title: Type
+          type: string
+        error:
+          $ref: '#/components/schemas/StreamErrorDetail'
+      required:
+      - error
+      title: GenerateStreamError
+      type: object
+    ChatStreamThinking:
+      description: 'Fragment de réflexion. Émis uniquement si non vide ET si la politique
+
+        du modèle expose la réflexion.'
+      properties:
+        type:
+          const: thinking
+          default: thinking
+          title: Type
+          type: string
+        delta:
+          title: Delta
+          type: string
+        done:
+          const: false
+          default: false
+          title: Done
+          type: boolean
+      required:
+      - delta
+      title: ChatStreamThinking
+      type: object
+    ChatStreamContent:
+      description: Fragment de contenu final. Émis uniquement si non vide.
+      properties:
+        type:
+          const: content
+          default: content
+          title: Type
+          type: string
+        delta:
+          title: Delta
+          type: string
+        done:
+          const: false
+          default: false
+          title: Done
+          type: boolean
+      required:
+      - delta
+      title: ChatStreamContent
+      type: object
+    ChatStreamDone:
+      description: Événement final d'un flux chat abouti — exactement un par flux réussi.
+      properties:
+        type:
+          const: done
+          default: done
+          title: Type
+          type: string
+        delta:
+          const: ''
+          default: ''
+          title: Delta
+          type: string
+        done:
+          const: true
+          default: true
+          title: Done
+          type: boolean
+        model:
+          title: Model
+          type: string
+        tokens:
+          $ref: '#/components/schemas/TokenCounts'
+        usage:
+          $ref: '#/components/schemas/Usage'
+        done_reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Done Reason
+        content_empty:
+          title: Content Empty
+          type: boolean
+        thinking_exposed:
+          default: false
+          title: Thinking Exposed
+          type: boolean
+        reasoning:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Reasoning
+      required:
+      - model
+      - tokens
+      - usage
+      - content_empty
+      title: ChatStreamDone
+      type: object
+  headers:
+    X-Request-ID:
+      description: 'Identifiant de corrélation : relayé s''il respecte ^[A-Za-z0-9._:-]{1,128}$, généré (UUID v4) sinon. Présent
+        sur toute réponse.'
+      schema:
+        type: string
+        pattern: ^[A-Za-z0-9._:-]{1,128}$
+    Retry-After:
+      description: Délai de politesse (secondes entières) avant nouvel essai sur une saturation 503.
+      schema:
+        type: integer
+        minimum: 1
+  parameters:
+    XRequestID:
+      name: X-Request-ID
+      in: header
+      required: false
+      description: Identifiant de corrélation fourni par le client (optionnel).
+      schema:
+        type: string
+        pattern: ^[A-Za-z0-9._:-]{1,128}$
+servers:
+- url: http://127.0.0.1:8100
+  description: Gateway locale (boucle locale)
+x-gateway-contract:
+  status: CANDIDATE_FOR_RATIFICATION
+  version: 1.0.0-candidate.2
+  ratification: pending
+  required_routes:
+  - GET /health/runtime
+  - GET /health/live
+  - GET /v1/models
+  - POST /v1/generate
+  - POST /v1/generate/stream
+  - POST /v1/embeddings
+  - POST /v1/rerank
+  optional_capabilities_default_off:
+  - asr
+  - vision
+  - chat
+  not_included:
+  - semantic_extract
+  - structured_extract
+  - v2h
+  - host_admission_controller
+  capability_states:
+  - ENABLED
+  - DISABLED
+  - UNAVAILABLE
+  - UNKNOWN
+  model_substitution: never — le nom demandé est résolu (logique -> tag) ou refusé
+  external_providers: none — runtime local uniquement, aucun repli cloud, aucun téléchargement à la requête
+x-gateway-error-codes:
+- code: model_not_registered
+  http_status: 400
+  retryable: false
+  where: generate, chat, embeddings (registre strict)
+- code: completion_not_supported
+  http_status: 400
+  retryable: false
+  where: 'generate : modèle sans capability completion'
+- code: chat_not_supported
+  http_status: 400
+  retryable: false
+  where: 'chat : modèle sans capability chat'
+- code: structured_output_not_supported
+  http_status: 400
+  retryable: false
+  where: 'generate/chat : capability absente'
+- code: structured_output_reasoning_incompatible
+  http_status: 400
+  retryable: false
+  where: 'generate : canal de raisonnement actif'
+- code: structured_output_streaming_not_supported
+  http_status: 400
+  retryable: false
+  where: generate/stream, chat/stream
+- code: generate_format_conflict
+  http_status: 400
+  retryable: false
+  where: 'generate : format et response_format exclusifs'
+- code: keep_alive_not_overridable
+  http_status: 400
+  retryable: false
+  where: 'generate/chat : profil de rétention verrouillé'
+- code: embedding_dimension_incompatible
+  http_status: 400
+  retryable: false
+  where: 'embeddings : dimension ≠ index'
+- code: invalid_content_length
+  http_status: 400
+  retryable: false
+  where: middleware
+- code: length_required
+  http_status: 411
+  retryable: false
+  where: 'middleware : POST JSON sans Content-Length'
+- code: request_too_large
+  http_status: 413
+  retryable: false
+  where: 'middleware : Content-Length > AI_GATEWAY_REQUEST_MAX_BYTES'
+- code: output_empty
+  http_status: 502
+  retryable: false
+  where: sortie structurée vide
+- code: output_invalid
+  http_status: 502
+  retryable: false
+  where: sortie structurée non JSON strict
+- code: output_mismatch
+  http_status: 502
+  retryable: false
+  where: sortie structurée non conforme
+- code: unsupported_upstream_response
+  http_status: 502
+  retryable: false
+  where: 'chat : tool_calls sans outil'
+- code: model_not_installed
+  http_status: 503
+  retryable: false
+  where: 'generate, chat, embeddings : modèle absent du runtime (aucun téléchargement)'
+- code: generation_saturated
+  http_status: 503
+  retryable: true
+  where: generate, generate/stream, chat, chat/stream (+Retry-After)
+- code: embeddings_saturated
+  http_status: 503
+  retryable: true
+  where: embeddings (+Retry-After)
+- code: rerank_saturated
+  http_status: 503
+  retryable: true
+  where: rerank (+Retry-After)
+- code: vision_not_enabled
+  http_status: 503
+  retryable: false
+  where: 'vision : capacité OFF'
+- code: vision_task_unavailable
+  http_status: 503
+  retryable: false
+  where: 'vision : semantic_extract non inclus'
+- code: vision_overloaded
+  http_status: 503
+  retryable: true
+  where: vision (+Retry-After)
+- code: asr_unavailable
+  http_status: 503
+  retryable: true
+  where: 'asr : capacité OFF ou backend absent'
+- code: resource_saturated
+  http_status: 503
+  retryable: true
+  where: asr (+Retry-After)
+x-gateway-limits:
+  timeout_seconds_default: 60
+  request_max_bytes_default: 2097152
+  generate_max_concurrency_default: 2
+  embeddings_max_concurrency_default: 2
+  rerank_max_concurrency_default: 2
+  embeddings_max_batch_default: 64
+  embeddings_dimension_default: 768
+  retry_after_seconds:
+    generation_saturated: 2
+    embeddings_saturated: 1
+    rerank_saturated: 1
+    vision_overloaded: 10
+  model_name_pattern: ^[A-Za-z0-9._:/-]+$
+  model_name_max_chars: 256
+x-gateway-embeddings-identity:
+  pipeline_id_format: emb-v2:<sha256[:32] du payload canonique>
+  payload_fields:
+  - schema
+  - model_digest
+  - task
+  - prefix
+  - overflow
+  - normalized
+  - implementation
+  response_fields:
+  - pipeline_id
+  - expected_digest
+  - model_digest
+  - identity_verified
+  - verified_at
+  - governed
+  - normalized
+  - dimension
+  compact_v1_dimension: 768
+x-gateway-pool-compatibility:
+  request_id_header: X-Request-ID
+  gateway_never_emits_headers_prefixed: X-AIGP-
+  distinguishable_errors: detail.code + detail.retryable + HTTP status
+  streaming: NDJSON relayé octet pour octet ; Content-Type application/x-ndjson
