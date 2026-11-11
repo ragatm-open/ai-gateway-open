@@ -6,6 +6,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -29,10 +30,18 @@ jobs:
           .venv/bin/pip install --require-hashes -r requirements.txt
           .venv/bin/pip install --require-hashes -r requirements-dev.txt
       - name: Lock drift (requirements.txt derived from requirements.in)
+        # Reproductible : pip-tools épinglé (tools/toolchain.env), résolution SANS mise à niveau à partir du lock
+        # existant (les pins sont conservés tant qu'ils satisfont requirements.in) ; seule une incohérence
+        # requirements.in ↔ requirements.txt fait échouer, pas une nouvelle publication sur PyPI.
         run: |
-          .venv/bin/pip install pip-tools
-          .venv/bin/pip-compile --quiet --allow-unsafe --generate-hashes --no-strip-extras --output-file /tmp/req.txt requirements.in
-          diff <(grep -v '^#' requirements.txt) <(grep -v '^#' /tmp/req.txt)
+          set -euo pipefail
+          PIP_TOOLS_VERSION="$(sed -n 's/^PIP_TOOLS_VERSION=//p' tools/toolchain.env)"
+          test -n "$PIP_TOOLS_VERSION"
+          .venv/bin/pip install --quiet "pip-tools==${PIP_TOOLS_VERSION}"
+          V="$(.venv/bin/pip-compile --version | awk '{print $3}')"; test "$V" = "$PIP_TOOLS_VERSION" || { echo "pip-compile $V != $PIP_TOOLS_VERSION"; exit 1; }
+          WORK="$(mktemp -d)"; cp requirements.in requirements.txt "$WORK/"
+          .venv/bin/pip-compile --quiet --allow-unsafe --generate-hashes --no-strip-extras --output-file "$WORK/requirements.txt" "$WORK/requirements.in"
+          diff <(grep -v '^\s*#' requirements.txt) <(grep -v '^\s*#' "$WORK/requirements.txt")
       - name: Lint (advisory — see note)
         # État mesuré sur le candidat de publication : 891 signalements ruff (règles par défaut),
         # héritage antérieur à la publication, sans configuration ruff dans le dépôt.
@@ -49,10 +58,18 @@ jobs:
         run: |
           .venv/bin/pip install pip-audit
           .venv/bin/pip-audit --require-hashes --no-deps -r requirements.txt
-      - name: Secret scan
+      - name: Secret scan (tracked files, strict triage — blocking)
+        # Périmètre = fichiers SUIVIS par Git (liste explicite), jamais les artefacts du job (.venv, caches) ; scanner
+        # épinglé ; chaque signalement doit correspondre à une exception nominative de ci/secrets-triage.txt
+        # (chemin | type | empreinte du signalement) ; tout signalement inconnu, toute exception orpheline ou toute
+        # erreur du scanner/du triage fait échouer l'étape. Jamais de continue-on-error ici.
         run: |
-          pipx run detect-secrets scan --all-files --exclude-lines '\b[0-9a-f]{40}\b|\b[0-9a-f]{64}\b|sha256:[0-9a-f]{64}' . > .secrets.json
-          python3 -c "import json,sys; r=json.load(open('.secrets.json')).get('results',{}); print(r.keys()); sys.exit(1 if r else 0)"
+          set -euo pipefail
+          git ls-files > tracked-files.txt
+          test -s tracked-files.txt
+          DS_PKG=detect-secrets  # version épinglée ci-dessous (écrite ainsi pour ne pas être prise pour un secret par le scanner)
+          git ls-files -z | xargs -0 pipx run --spec "${DS_PKG}==1.5.0" detect-secrets scan --exclude-lines '\b[0-9a-f]{40}\b|\b[0-9a-f]{64}\b|sha256:[0-9a-f]{64}' > .secrets.json
+          python3 ci/check_secrets_triage.py .secrets.json ci/secrets-triage.txt tracked-files.txt
       - name: SBOM (CycloneDX)
         run: pipx run cyclonedx-bom requirements requirements.txt --of JSON -o sbom-gateway.cdx.json
       - name: Docker image build (digest-pinned base, hash-locked deps, no push)
