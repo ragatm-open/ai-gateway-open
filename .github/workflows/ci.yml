@@ -30,10 +30,18 @@ jobs:
           .venv/bin/pip install --require-hashes -r requirements.txt
           .venv/bin/pip install --require-hashes -r requirements-dev.txt
       - name: Lock drift (requirements.txt derived from requirements.in)
+        # Reproductible : pip-tools épinglé (tools/toolchain.env), résolution SANS mise à niveau à partir du lock
+        # existant (les pins sont conservés tant qu'ils satisfont requirements.in) ; seule une incohérence
+        # requirements.in ↔ requirements.txt fait échouer, pas une nouvelle publication sur PyPI.
         run: |
-          .venv/bin/pip install pip-tools
-          .venv/bin/pip-compile --quiet --allow-unsafe --generate-hashes --no-strip-extras --output-file /tmp/req.txt requirements.in
-          diff <(grep -v '^#' requirements.txt) <(grep -v '^#' /tmp/req.txt)
+          set -euo pipefail
+          PIP_TOOLS_VERSION="$(sed -n 's/^PIP_TOOLS_VERSION=//p' tools/toolchain.env)"
+          test -n "$PIP_TOOLS_VERSION"
+          .venv/bin/pip install --quiet "pip-tools==${PIP_TOOLS_VERSION}"
+          V="$(.venv/bin/pip-compile --version | awk '{print $3}')"; test "$V" = "$PIP_TOOLS_VERSION" || { echo "pip-compile $V != $PIP_TOOLS_VERSION"; exit 1; }
+          WORK="$(mktemp -d)"; cp requirements.in requirements.txt "$WORK/"
+          .venv/bin/pip-compile --quiet --allow-unsafe --generate-hashes --no-strip-extras --output-file "$WORK/requirements.txt" "$WORK/requirements.in"
+          diff <(grep -v '^\s*#' requirements.txt) <(grep -v '^\s*#' "$WORK/requirements.txt")
       - name: Lint (advisory — see note)
         # État mesuré sur le candidat de publication : 891 signalements ruff (règles par défaut),
         # héritage antérieur à la publication, sans configuration ruff dans le dépôt.
